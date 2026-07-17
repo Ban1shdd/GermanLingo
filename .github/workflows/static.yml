@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeutschLingo - 365 Days of German</title>
+    <style>
+        :root {
+            --primary: #58cc02;
+            --primary-dark: #46a302;
+            --secondary: #1cb0f6;
+            --danger: #ff4b4b;
+            --text: #3c3c3c;
+            --bg: #ffffff;
+            --card-border: #e5e5e5;
+            --gray-light: #f7f7f7;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            color: var(--text);
+            background-color: #fafafa;
+            padding-bottom: 70px;
+        }
+
+        header {
+            background-color: var(--bg);
+            border-bottom: 2px solid var(--card-border);
+            padding: 15px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .stats-container {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            font-weight: bold;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .streak-icon { color: #ff9600; }
+        .xp-icon { color: #ffc800; }
+        .heart-icon { color: var(--danger); }
+
+        .main-container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 0 15px;
+        }
+
+        .view-section {
+            display: none;
+        }
+
+        .view-section.active {
+            display: block;
+        }
+
+        .unit-header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.1);
+        }
+
+        .path-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            position: relative;
+            padding: 10px 0;
+        }
+
+        .lesson-node {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background-color: #e5e5e5;
+            border: 4px solid #ccc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            color: #a0a0a0;
+            cursor: not-allowed;
+            position: relative;
+            transition: transform 0.2s;
+        }
+
+        .lesson-node.unlocked {
+            background-color: var(--bg);
+            border-color: var(--secondary);
+            color: var(--secondary);
+            cursor: pointer;
+            box-shadow: 0 5px 0 #1899d6;
+        }
+
+        .lesson-node.current {
+            background-color: var(--primary);
+            border-color: #fff;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 5px 0 var(--primary-dark), 0 0 0 4px var(--primary);
+            transform: scale(1.1);
+        }
+
+        .lesson-node.completed {
+            background-color: var(--primary);
+            border-color: var(--primary-dark);
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #3b8801;
+        }
+
+        .lesson-node:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+
+        .lesson-tooltip {
+            position: absolute;
+            background: #333;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            bottom: 80px;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .lesson-node:hover .lesson-tooltip {
+            opacity: 1;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg);
+            z-index: 200;
+            display: none;
+            flex-direction: column;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 2px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .close-btn {
+            font-size: 24px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            color: #ccc;
+        }
+
+        .progress-bar-container {
+            flex-grow: 1;
+            height: 16px;
+            background-color: var(--gray-light);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background-color: var(--primary);
+            transition: width 0.3s;
+        }
+
+        .modal-body {
+            flex-grow: 1;
+            padding: 40px 20px;
+            max-width: 600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .question-title {
+            font-size: 24px;
+            margin-bottom: 30px;
+        }
+
+        .prompt-card {
+            background: var(--gray-light);
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid var(--card-border);
+            margin-bottom: 25px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .option-card {
+            background: var(--bg);
+            border: 2px solid var(--card-border);
+            border-radius: 12px;
+            padding: 15px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.1s;
+            text-align: left;
+        }
+
+        .option-card:hover {
+            background-color: var(--gray-light);
+        }
+
+        .option-card.selected {
+            border-color: var(--secondary);
+            background-color: #ddf4ff;
+        }
+
+        .text-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid var(--card-border);
+            border-radius: 12px;
+            font-size: 16px;
+            outline: none;
+            margin-bottom: 20px;
+        }
+
+        .text-input:focus {
+            border-color: var(--secondary);
+        }
+
+        .word-bank {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+            min-height: 50px;
+            padding: 10px;
+            border-bottom: 2px solid var(--card-border);
+        }
+
+        .word-chip {
+            background: var(--bg);
+            border: 2px solid var(--card-border);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            box-shadow: 0 2px 0 var(--card-border);
+        }
+
+        .word-chip.used {
+            opacity: 0.3;
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .modal-footer {
+            padding: 20px;
+            border-top: 2px solid var(--card-border);
+            display: flex;
+            justify-content: flex-end;
+            background: var(--bg);
+        }
+
+        .check-btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 0 var(--primary-dark);
+            width: 100%;
+        }
+
+        .check-btn:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+
+        .feedback-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 210;
+        }
+
+        .feedback-bar.correct {
+            background-color: #d7ffb8;
+            color: #43c000;
+            border-top: 2px solid #b8f28b;
+        }
+
+        .feedback-bar.incorrect {
+            background-color: #ffdfe0;
+            color: #ea2b2b;
+            border-top: 2px solid #ffc1c3;
+        }
+
+        .feedback-message {
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .nav-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg);
+            border-top: 2px solid var(--card-border);
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            z-index: 90;
+        }
+
+        .nav-item {
+            background: none;
+            border: none;
+            color: #888;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 12px;
+            gap: 4px;
+        }
+
+        .nav-item.active {
+            color: var(--secondary);
+        }
+
+        .nav-icon {
+            font-size: 20px;
+        }
+
+        .dashboard-card {
+            background: var(--bg);
+            border: 2px solid var(--card-border);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .dashboard-card h3 {
+            margin-bottom: 15px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .stat-box {
+            background: var(--gray-light);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-num {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--secondary);
+        }
+
+        .shop-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .shop-item:last-child {
+            border-bottom: none;
+        }
+
+        .buy-btn {
+            background: var(--secondary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .pagination-controls {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+
+        .page-btn {
+            background: var(--bg);
+            border: 2px solid var(--card-border);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div style="font-weight: bold; font-size: 20px; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 24px;">🦉</span> DeutschLingo
+        </div>
+        <div class="stats-container">
+            <div class="stat-item"><span class="streak-icon">🔥</span> <span id="header-streak">0</span></div>
+            <div class="stat-item"><span class="xp-icon">💎</span> <span id="header-xp">0</span></div>
+            <div class="stat-item"><span class="heart-icon">❤️</span> <span id="header-hearts">5</span></div>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <!-- LEARN VIEW -->
+        <section id="view-learn" class="view-section active">
+            <div class="unit-header">
+                <h2 id="unit-title">Loading Course...</h2>
+                <p id="unit-desc">Your year-long language transformation</p>
+            </div>
+            <div class="pagination-controls">
+                <button class="page-btn" id="prev-unit-btn" onclick="changeUnit(-1)">← Previous Unit</button>
+                <button class="page-btn" id="next-unit-btn" onclick="changeUnit(1)">Next Unit →</button>
+            </div>
+            <div class="path-container" id="path-container"></div>
+        </section>
+
+        <!-- STATS VIEW -->
+        <section id="view-stats" class="view-section">
+            <div class="dashboard-card">
+                <h3>Your Progress</h3>
+                <div class="grid-2">
+                    <div class="stat-box"><div class="stat-num" id="stats-lessons">0/365</div><div>Lessons Completed</div></div>
+                    <div class="stat-box"><div class="stat-num" id="stats-xp">0</div><div>Total XP Earned</div></div>
+                    <div class="stat-box"><div class="stat-num" id="stats-streak">0 Days</div><div>Current Streak</div></div>
+                    <div class="stat-box"><div class="stat-num" id="stats-level">Level 1</div><div>Current Level</div></div>
+                </div>
+            </div>
+            <div class="dashboard-card">
+                <h3>Daily Goal</h3>
+                <select id="daily-goal-select" class="text-input" style="margin-bottom: 0;" onchange="saveDailyGoal()">
+                    <option value="10">Casual (10 XP / day)</option>
+                    <option value="30" selected>Regular (30 XP / day)</option>
+                    <option value="50">Intense (50 XP / day)</option>
+                </select>
+            </div>
+        </section>
+
+        <!-- SHOP VIEW -->
+        <section id="view-shop" class="view-section">
+            <div class="dashboard-card">
+                <h3>Power-Ups</h3>
+                <div class="shop-item">
+                    <div>
+                        <strong>Heart Refill</strong>
+                        <div style="font-size: 14px; color: #666;">Instantly restore your lives to maximum</div>
+                    </div>
+                    <button class="buy-btn" onclick="buyShopItem('heart')">20 💎</button>
+                </div>
+                <div class="shop-item">
+                    <div>
+                        <strong>Streak Freeze</strong>
+                        <div style="font-size: 14px; color: #666;">Keep your streak safe if you miss a day</div>
+                    </div>
+                    <button class="buy-btn" onclick="buyShopItem('freeze')">50 💎</button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- LESSON SYSTEM MODAL -->
+    <div class="modal" id="lesson-modal">
+        <div class="modal-header">
+            <button class="close-btn" onclick="quitLesson()">✕</button>
+            <div class="progress-bar-container">
+                <div class="progress-bar-fill" id="lesson-progress"></div>
+            </div>
+        </div>
+        <div class="modal-body" id="lesson-content"></div>
+        <div class="modal-footer">
+            <button class="check-btn" id="footer-action-btn" onclick="handleFooterAction()">Check Answer</button>
+        </div>
+    </div>
+
+    <div class="feedback-bar" id="feedback-bar">
+        <span class="feedback-message" id="feedback-text">Correct!</span>
+    </div>
+
+    <nav class="nav-bar">
+        <button class="nav-item active" onclick="switchView('learn', this)"><span class="nav-icon">🗺️</span>Learn</button>
+        <button class="nav-item" onclick="switchView('stats', this)"><span class="nav-icon">📊</span>Profile</button>
+        <button class="nav-item" onclick="switchView('shop', this)"><span class="nav-icon">🛒</span>Shop</button>
+    </nav>
+
+    <script>
+        // Core State
+        let state = {
+            currentLessonIndex: 0,
+            xp: 0,
+            streak: 0,
+            hearts: 5,
+            completedLessons: [],
+            dailyGoal: 30,
+            currentViewUnit: 1
+        };
+
+        // Track Structure Definitions
+        const tracks = [
+            { id: 'basics', title: 'Basics & Essentials', desc: 'Days 1-73: Foundational words and structure.' },
+            { id: 'daily', title: 'Daily Life & Routines', desc: 'Days 74-146: Food, shopping, and regular schedules.' },
+            { id: 'travel', title: 'Travel & Navigation', desc: 'Days 147-219: Directions, hotels, and transport.' },
+            { id: 'social', title: 'Socializing & Media', desc: 'Days 220-292: Making friends, hobbies, and digital life.' },
+            { id: 'mastery', title: 'Complex Structures', desc: 'Days 293-365: Advanced grammar, past tense, and idioms.' }
+        ];
+
+        // Content Library matrices for high-fidelity procedural assembly
+        const vocabularyPool = {
+            basics: [
+                { de: 'Hallo', en: 'Hello', type: 'mc' },
+                { de: 'Bitte', en: 'Please', type: 'fill' },
+                { de: 'Danke', en: 'Thank you', type: 'mc' },
+                { de: 'Guten Morgen', en: 'Good morning', type: 'build' },
+                { de: 'Wasser', en: 'Water', type: 'mc' },
+                { de: 'Brot', en: 'Bread', type: 'fill' },
+                { de: 'Milch', en: 'Milk', type: 'mc' }
+            ],
+            daily: [
+                { de: 'Frühstück', en: 'Breakfast', type: 'mc' },
+                { de: 'Kaffee', en: 'Coffee', type: 'fill' },
+                { de: 'Apfel', en: 'Apple', type: 'mc' },
+                { de: 'Supermarkt', en: 'Supermarket', type: 'build' },
+                { de: 'Käse', en: 'Cheese', type: 'mc' },
+                { de: 'Fleisch', en: 'Meat', type: 'fill' },
+                { de: 'Zeitung', en: 'Newspaper', type: 'mc' }
+            ],
+            travel: [
+                { de: 'Bahnhof', en: 'Train station', type: 'build' },
+                { de: 'Flughafen', en: 'Airport', type: 'mc' },
+                { de: 'Hotel', en: 'Hotel', type: 'fill' },
+                { de: 'Auto', en: 'Car', type: 'mc' },
+                { de: 'Karte', en: 'Ticket', type: 'fill' },
+                { de: 'Reise', en: 'Journey', type: 'mc' },
+                { de: 'Reisepass', en: 'Passport', type: 'build' }
+            ],
+            social: [
+                { de: 'Freund', en: 'Friend', type: 'mc' },
+                { de: 'Musik', en: 'Music', type: 'fill' },
+                { de: 'Spiel', en: 'Game', type: 'mc' },
+                { de: 'Sprechen', en: 'To speak', type: 'build' },
+                { de: 'Handy', en: 'Mobile phone', type: 'mc' },
+                { de: 'Kino', en: 'Cinema', type: 'fill' },
+                { de: 'Familie', en: 'Family', type: 'mc' }
+            ],
+            mastery: [
+                { de: 'Vergangenheit', en: 'Past tense', type: 'build' },
+                { de: 'Zukunft', en: 'Future', type: 'mc' },
+                { de: 'Entscheidung', en: 'Decision', type: 'fill' },
+                { de: 'Möglichkeit', en: 'Possibility', type: 'mc' },
+                { de: 'Unabhängig', en: 'Independent', type: 'build' },
+                { de: 'Verantwortung', en: 'Responsibility', type: 'fill' },
+                { de: 'Erfahrung', en: 'Experience', type: 'mc' }
+            ]
+        };
+
+        const totalLessonsCount = 365;
+        const lessonsPerUnit = 73;
+
+        let activeLesson = null;
+        let activeQuestionIndex = 0;
+        let selectedOptionElement = null;
+        let currentBuildSelection = [];
+
+        // App Initialization with Fixes Enabled
+        window.onload = function() {
+            loadProgress();
+            if (!state.currentViewUnit) {
+                state.currentViewUnit = 1;
+            }
+            renderPath();
+            updateUIStats();
+        };
+
+        function saveProgress() {
+            localStorage.setItem('deutschlingo_state', JSON.stringify(state));
+        }
+
+        function loadProgress() {
+            const saved = localStorage.getItem('deutschlingo_state');
+            if (saved) {
+                try {
+                    state = JSON.parse(saved);
+                    if (!state.completedLessons) state.completedLessons = [];
+                    if (state.hearts === undefined) state.hearts = 5;
+                    if (!state.currentViewUnit) state.currentViewUnit = 1;
+                    if (state.streak === undefined) state.streak = 0;
+                    if (state.xp === undefined) state.xp = 0;
+                } catch (e) {
+                    console.error("Error loading state", e);
+                }
+            } else {
+                state = {
+                    currentLessonIndex: 0,
+                    xp: 0,
+                    streak: 0,
+                    hearts: 5,
+                    completedLessons: [],
+                    dailyGoal: 30,
+                    currentViewUnit: 1
+                };
+            }
+        }
+
+        function generateLessonData(lessonNumber) {
+            const trackIndex = Math.min(Math.floor((lessonNumber - 1) / lessonsPerUnit), tracks.length - 1);
+            const activeTrack = tracks[trackIndex];
+            const pool = vocabularyPool[activeTrack.id];
+            
+            const seedIndex = (lessonNumber * 3) % pool.length;
+            const primaryItem = pool[seedIndex];
+            const secondaryItem = pool[(seedIndex + 1) % pool.length];
+            const tertiaryItem = pool[(seedIndex + 2) % pool.length];
+
+            return {
+                lessonNumber: lessonNumber,
+                trackTitle: activeTrack.title,
+                questions: [
+                    {
+                        type: 'mc',
+                        prompt: `What is the correct English translation for: "${primaryItem.de}"?`,
+                        options: shuffleArray([primaryItem.en, secondaryItem.en, tertiaryItem.en, 'None of the above']),
+                        answer: primaryItem.en
+                    },
+                    {
+                        type: 'fill',
+                        prompt: `Translate this word directly into German: "${secondaryItem.en}"`,
+                        answer: secondaryItem.de
+                    },
+                    {
+                        type: 'build',
+                        prompt: `Construct the phrase: "${tertiaryItem.en}"`,
+                        options: shuffleArray([tertiaryItem.de, primaryItem.de, secondaryItem.de, 'und', 'ja']),
+                        answer: tertiaryItem.de
+                    }
+                ]
+            };
+        }
+
+        function shuffleArray(array) {
+            return array.sort(() => Math.random() - 0.5);
+        }
+
+        function switchView(viewId, element) {
+            document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            
+            document.getElementById(`view-${viewId}`).classList.add('active');
+            if (element) element.classList.add('active');
+            
+            if (viewId === 'stats') updateStatsDashboard();
+        }
+
+        function changeUnit(direction) {
+            const newUnit = state.currentViewUnit + direction;
+            if (newUnit >= 1 && newUnit <= tracks.length) {
+                state.currentViewUnit = newUnit;
+                renderPath();
+            }
+        }
+
+        function updateUIStats() {
+            document.getElementById('header-streak').innerText = state.streak;
+            document.getElementById('header-xp').innerText = state.xp;
+            document.getElementById('header-hearts').innerText = state.hearts;
+        }
+
+        function updateStatsDashboard() {
+            document.getElementById('stats-lessons').innerText = `${state.completedLessons.length}/${totalLessonsCount}`;
+            document.getElementById('stats-xp').innerText = state.xp;
+            document.getElementById('stats-streak').innerText = `${state.streak} Days`;
+            document.getElementById('stats-level').innerText = `Level ${Math.floor(state.xp / 100) + 1}`;
+            document.getElementById('daily-goal-select').value = state.dailyGoal;
+        }
+
+        function saveDailyGoal() {
+            state.dailyGoal = parseInt(document.getElementById('daily-goal-select').value);
+            saveProgress();
+        }
+
+        function renderPath() {
+            const container = document.getElementById('path-container');
+            container.innerHTML = '';
+            
+            const currentUnitData = tracks[state.currentViewUnit - 1];
+            document.getElementById('unit-title').innerText = `Unit ${state.currentViewUnit}: ${currentUnitData.title}`;
+            document.getElementById('unit-desc').innerText = currentUnitData.desc;
+
+            document.getElementById('prev-unit-btn').disabled = (state.currentViewUnit === 1);
+            document.getElementById('next-unit-btn').disabled = (state.currentViewUnit === tracks.length);
+
+            const startLesson = (state.currentViewUnit - 1) * lessonsPerUnit + 1;
+            const endLesson = Math.min(startLesson + lessonsPerUnit - 1, totalLessonsCount);
+
+            for (let i = startLesson; i <= endLesson; i++) {
+                const node = document.createElement('div');
+                node.className = 'lesson-node';
+                
+                const isCompleted = state.completedLessons.includes(i);
+                const isUnlocked = i === 1 || state.completedLessons.includes(i - 1) || isCompleted;
+                const isCurrent = isUnlocked && !isCompleted;
+
+                if (isCompleted) node.classList.add('completed');
+                if (isUnlocked) node.classList.add('unlocked');
+                if (isCurrent) node.classList.add('current');
+
+                node.innerHTML = `<span>${i}</span><div class="lesson-tooltip">Day ${i}: Click to Practice</div>`;
+                
+                if (isUnlocked) {
+                    node.onclick = () => startLessonSession(i);
+                }
+
+                const offset = (i % 3 - 1) * 40;
+                node.style.transform = `translateX(${offset}px)`;
+
+                container.appendChild(node);
+            }
+        }
+
+        function startLessonSession(lessonNumber) {
+            if (state.hearts <= 0) {
+                alert("You don't have any hearts left! Refill via the shop.");
+                return;
+            }
+            activeLesson = generateLessonData(lessonNumber);
+            activeQuestionIndex = 0;
+            document.getElementById('lesson-modal').style.display = 'flex';
+            renderQuestion();
+        }
+
+        function renderQuestion() {
+            const question = activeLesson.questions[activeQuestionIndex];
+            const contentArea = document.getElementById('lesson-content');
+            contentArea.innerHTML = '';
+
+            const progressPct = (activeQuestionIndex / activeLesson.questions.length) * 100;
+            document.getElementById('lesson-progress').style.width = progressPct + '%';
+
+            const title = document.createElement('h3');
+            title.className = 'question-title';
+            title.innerText = question.prompt;
+            contentArea.appendChild(title);
+
+            document.getElementById('footer-action-btn').innerText = "Check Answer";
+            document.getElementById('footer-action-btn').onclick = checkAnswer;
+
+            if (question.type === 'mc') {
+                const grid = document.createElement('div');
+                grid.className = 'options-grid';
+                question.options.forEach(opt => {
+                    const btn = document.createElement('button');
+                    btn.className = 'option-card';
+                    btn.innerText = opt;
+                    btn.onclick = () => {
+                        document.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+                        btn.classList.add('selected');
+                        selectedOptionElement = btn;
+                    };
+                    grid.appendChild(btn);
+                });
+                contentArea.appendChild(grid);
+            } else if (question.type === 'fill') {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'text-input';
+                input.id = 'fill-input';
+                input.placeholder = 'Type your answer here...';
+                contentArea.appendChild(input);
+            } else if (question.type === 'build') {
+                currentBuildSelection = [];
+                const bankDisplay = document.createElement('div');
+                bankDisplay.className = 'word-bank';
+                bankDisplay.id = 'build-display';
+                contentArea.appendChild(bankDisplay);
+
+                const sourceGrid = document.createElement('div');
+                sourceGrid.className = 'options-grid';
+                sourceGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(100px, 1fr))';
+                
+                question.options.forEach((word, idx) => {
+                    const chip = document.createElement('button');
+                    chip.className = 'word-chip';
+                    chip.innerText = word;
+                    chip.id = `chip-${idx}`;
+                    chip.onclick = () => {
+                        if (!chip.classList.contains('used')) {
+                            chip.classList.add('used');
+                            currentBuildSelection.push(word);
+                            renderBuildDisplay();
+                        }
+                    };
+                    sourceGrid.appendChild(chip);
+                });
+                contentArea.appendChild(sourceGrid);
+            }
+        }
+
+        function renderBuildDisplay() {
+            const display = document.getElementById('build-display');
+            display.innerHTML = '';
+            currentBuildSelection.forEach(word => {
+                const node = document.createElement('span');
+                node.className = 'word-chip';
+                node.innerText = word;
+                display.appendChild(node);
+            });
+        }
+
+        function checkAnswer() {
+            const question = activeLesson.questions[activeQuestionIndex];
+            let isCorrect = false;
+            let currentSelectionText = "";
+
+            if (question.type === 'mc') {
+                if (!selectedOptionElement) return;
+                currentSelectionText = selectedOptionElement.innerText;
+                isCorrect = (currentSelectionText.toLowerCase().trim() === question.answer.toLowerCase().trim());
+            } else if (question.type === 'fill') {
+                const val = document.getElementById('fill-input').value;
+                currentSelectionText = val;
+                isCorrect = (val.toLowerCase().trim() === question.answer.toLowerCase().trim());
+            } else if (question.type === 'build') {
+                currentSelectionText = currentBuildSelection.join(' ');
+                isCorrect = (currentSelectionText.toLowerCase().trim() === question.answer.toLowerCase().trim());
+            }
+
+            const feedbackBar = document.getElementById('feedback-bar');
+            const feedbackText = document.getElementById('feedback-text');
+            feedbackBar.style.display = 'flex';
+
+            if (isCorrect) {
+                feedbackBar.className = 'feedback-bar correct';
+                feedbackText.innerText = 'Correct! Excellent work.';
+            } else {
+                feedbackBar.className = 'feedback-bar incorrect';
+                feedbackText.innerText = `Incorrect. Correct response: ${question.answer}`;
+                state.hearts = Math.max(0, state.hearts - 1);
+                updateUIStats();
+            }
+
+            document.getElementById('footer-action-btn').innerText = "Continue";
+            document.getElementById('footer-action-btn').onclick = advanceLessonFlow;
+        }
+
+        function advanceLessonFlow() {
+            document.getElementById('feedback-bar').style.display = 'none';
+            selectedOptionElement = null;
+
+            if (state.hearts <= 0) {
+                quitLesson();
+                alert("Game Over! You ran out of hearts. Refill in the shop!");
+                return;
+            }
+
+            activeQuestionIndex++;
+            if (activeQuestionIndex >= activeLesson.questions.length) {
+                completeLessonSuccess();
+            } else {
+                renderQuestion();
+            }
+        }
+
+        function completeLessonSuccess() {
+            document.getElementById('lesson-modal').style.display = 'none';
+            const num = activeLesson.lessonNumber;
+            
+            if (!state.completedLessons.includes(num)) {
+                state.completedLessons.push(num);
+                state.xp += 10;
+                if (state.completedLessons.length === 1 || num === Math.max(...state.completedLessons)) {
+                    state.streak += 1;
+                }
+            }
+
+            saveProgress();
+            updateUIStats();
+            renderPath();
+            alert(`Congratulations! You completed Day ${num} and earned +10 XP.`);
+            activeLesson = null;
+        }
+
+        function quitLesson() {
+            document.getElementById('lesson-modal').style.display = 'none';
+            document.getElementById('feedback-bar').style.display = 'none';
+            activeLesson = null;
+        }
+
+        function buyShopItem(itemType) {
+            if (itemType === 'heart') {
+                if (state.xp >= 20) {
+                    if (state.hearts === 5) {
+                        alert("Your health is already at max.");
+                        return;
+                    }
+                    state.xp -= 20;
+                    state.hearts = 5;
+                    alert("Hearts Refilled to 5!");
+                } else {
+                    alert("Not enough XP Gems.");
+                }
+            } else if (itemType === 'freeze') {
+                if (state.xp >= 50) {
+                    state.xp -= 50;
+                    alert("Streak Freeze Purchased and Activated!");
+                } else {
+                    alert("Not enough XP Gems.");
+                }
+            }
+            saveProgress();
+            updateUIStats();
+        }
+    </script>
+</body>
+</html>
